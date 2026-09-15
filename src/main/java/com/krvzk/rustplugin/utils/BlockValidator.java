@@ -24,7 +24,7 @@ public class BlockValidator {
         StructureType type = structure.getType();
         Location baseLocation = structure.getLocation();
 
-        // Check if blocks are available
+        // Check if blocks are available (except for edge blocks that can be replaced by edges)
         for (int x = 0; x < type.getWidth(); x++) {
             for (int y = 0; y < type.getHeight(); y++) {
                 for (int z = 0; z < type.getDepth(); z++) {
@@ -42,17 +42,70 @@ public class BlockValidator {
         // Check if there are existing structures in the area
         List<Structure> nearbyStructures = structureManager.getStructuresInArea(
                 baseLocation,
-                Math.max(type.getWidth(), type.getDepth()) + 1,
+                Math.max(type.getWidth(), type.getDepth()) + 2,
                 baseLocation.getWorld().getName()
         );
 
         for (Structure existing : nearbyStructures) {
-            if (structuresOverlap(structure, existing)) {
+            // Don't allow fundament on fundament
+            if (type == StructureType.FUNDAMENT && existing.getType() == StructureType.FUNDAMENT) {
+                if (isDirectlyAboveOrBelow(structure, existing)) {
+                    return false;
+                }
+            }
+            
+            // Check for overlapping interiors (not edges)
+            if (structuresInteriorOverlap(structure, existing)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private boolean isDirectlyAboveOrBelow(Structure s1, Structure s2) {
+        Location loc1 = s1.getLocation();
+        Location loc2 = s2.getLocation();
+
+        // Check if they're directly above/below each other (same X and Z, different Y)
+        int x1_min = loc1.getBlockX();
+        int x1_max = x1_min + s1.getType().getWidth();
+        int z1_min = loc1.getBlockZ();
+        int z1_max = z1_min + s1.getType().getDepth();
+
+        int x2_min = loc2.getBlockX();
+        int x2_max = x2_min + s2.getType().getWidth();
+        int z2_min = loc2.getBlockZ();
+        int z2_max = z2_min + s2.getType().getDepth();
+
+        // Check if X and Z ranges overlap or are adjacent
+        return !(x1_max < x2_min || x1_min > x2_max || z1_max < z2_min || z1_min > z2_max);
+    }
+
+    private boolean structuresInteriorOverlap(Structure s1, Structure s2) {
+        Location loc1 = s1.getLocation();
+        Location loc2 = s2.getLocation();
+        StructureType type1 = s1.getType();
+        StructureType type2 = s2.getType();
+
+        // Get interior bounds (excluding edges)
+        int x1_min = loc1.getBlockX() + 1;
+        int x1_max = x1_min + type1.getWidth() - 2;
+        int y1_min = loc1.getBlockY();
+        int y1_max = y1_min + type1.getHeight();
+        int z1_min = loc1.getBlockZ() + 1;
+        int z1_max = z1_min + type1.getDepth() - 2;
+
+        int x2_min = loc2.getBlockX() + 1;
+        int x2_max = x2_min + type2.getWidth() - 2;
+        int y2_min = loc2.getBlockY();
+        int y2_max = y2_min + type2.getHeight();
+        int z2_min = loc2.getBlockZ() + 1;
+        int z2_max = z2_min + type2.getDepth() - 2;
+
+        return x1_min < x2_max && x1_max > x2_min &&
+               y1_min < y2_max && y1_max > y2_min &&
+               z1_min < z2_max && z1_max > z2_min;
     }
 
     public void placeStructureBlocks(Structure structure, float yaw) {
@@ -120,31 +173,5 @@ public class BlockValidator {
                 }
             }
         }
-    }
-
-    private boolean structuresOverlap(Structure s1, Structure s2) {
-        Location loc1 = s1.getLocation();
-        Location loc2 = s2.getLocation();
-        StructureType type1 = s1.getType();
-        StructureType type2 = s2.getType();
-
-        // Simple AABB collision detection
-        int x1_min = loc1.getBlockX();
-        int x1_max = x1_min + type1.getWidth();
-        int y1_min = loc1.getBlockY();
-        int y1_max = y1_min + type1.getHeight();
-        int z1_min = loc1.getBlockZ();
-        int z1_max = z1_min + type1.getDepth();
-
-        int x2_min = loc2.getBlockX();
-        int x2_max = x2_min + type2.getWidth();
-        int y2_min = loc2.getBlockY();
-        int y2_max = y2_min + type2.getHeight();
-        int z2_min = loc2.getBlockZ();
-        int z2_max = z2_min + type2.getDepth();
-
-        return x1_min < x2_max && x1_max > x2_min &&
-               y1_min < y2_max && y1_max > y2_min &&
-               z1_min < z2_max && z1_max > z2_min;
     }
 }

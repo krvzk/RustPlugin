@@ -30,7 +30,7 @@ public class PlayerInteractListener implements Listener {
             return false;
         }
         String displayName = player.getInventory().getItemInMainHand().getItemMeta().getDisplayName();
-        return displayName.equals("§6Plan Budowy");
+        return displayName.equals("\u00a76Plan Budowy");
     }
 
     @EventHandler
@@ -55,7 +55,7 @@ public class PlayerInteractListener implements Listener {
             event.setCancelled(true);
 
             if (!builderManager.hasStructureSelected(playerUUID)) {
-                player.sendMessage("§cSelect a structure first!");
+                player.sendMessage("\u00a7cSelect a structure first!");
                 return;
             }
 
@@ -91,11 +91,17 @@ public class PlayerInteractListener implements Listener {
         // Check if player is no longer holding the blueprint
         if (player.getInventory().getItem(event.getNewSlot()) == null ||
                 player.getInventory().getItem(event.getNewSlot()).getItemMeta() == null ||
-                !player.getInventory().getItem(event.getNewSlot()).getItemMeta().getDisplayName().equals("§6Plan Budowy")) {
+                !player.getInventory().getItem(event.getNewSlot()).getItemMeta().getDisplayName().equals("\u00a76Plan Budowy")) {
             
             // Clear preview and reset structure selection
             plugin.getPreviewRenderer().clearAllPreviews(player);
             builderManager.deselectStructure(playerUUID);
+        } else {
+            // Player switched to blueprint item, show preview if structure is selected
+            StructureType selected = builderManager.getSelectedStructure(playerUUID);
+            if (selected != null) {
+                plugin.getPreviewRenderer().updatePreview(player, selected);
+            }
         }
     }
 }
