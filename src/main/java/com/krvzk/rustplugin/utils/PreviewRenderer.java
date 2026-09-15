@@ -39,17 +39,19 @@ public class PreviewRenderer {
     public void updatePreview(Player player, StructureType structureType) {
         UUID playerUUID = player.getUniqueId();
 
-        // Get direction player is looking
+        // Get direction player is looking (center of crosshair)
         Vector direction = player.getLocation().getDirection().normalize();
-        Location previewLocation = player.getLocation().add(direction.multiply(7));
-        previewLocation.setY(previewLocation.getBlockY());
+        Location previewLocation = player.getEyeLocation().add(direction.multiply(7));
+        
+        // Snap to grid for alignment (round to nearest block)
+        previewLocation.setX(Math.floor(previewLocation.getX()));
+        previewLocation.setY(Math.floor(previewLocation.getY()));
+        previewLocation.setZ(Math.floor(previewLocation.getZ()));
 
         Location lastLocation = playerLastPreviewLocation.get(playerUUID);
 
         // Only update if location changed
-        if (lastLocation != null && lastLocation.getBlockX() == previewLocation.getBlockX() &&
-                lastLocation.getBlockY() == previewLocation.getBlockY() &&
-                lastLocation.getBlockZ() == previewLocation.getBlockZ()) {
+        if (lastLocation != null && lastLocation.equals(previewLocation)) {
             return;
         }
 
@@ -105,10 +107,12 @@ public class PreviewRenderer {
                         Location blockLocation = baseLocation.clone().add(x, y, z);
                         Block block = blockLocation.getBlock();
 
-                        boolean canPlace = block.getType() == Material.AIR;
-                        Material previewMaterial = canPlace ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS;
-                        sendBlockChangePacket(player, blockLocation, previewMaterial);
-                        previewLocations.add(blockLocation);
+                        // Only show preview for air blocks, skip existing blocks
+                        if (block.getType() == Material.AIR) {
+                            Material previewMaterial = Material.LIME_STAINED_GLASS;
+                            sendBlockChangePacket(player, blockLocation, previewMaterial);
+                            previewLocations.add(blockLocation);
+                        }
                     }
                 }
             }
@@ -147,5 +151,6 @@ public class PreviewRenderer {
 
     public void clearAllPreviews(Player player) {
         clearPreview(player);
+        playerLastPreviewLocation.remove(player.getUniqueId());
     }
 }

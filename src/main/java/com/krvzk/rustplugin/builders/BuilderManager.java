@@ -38,13 +38,17 @@ public class BuilderManager {
     public void selectStructure(Player player, StructureType structureType) {
         UUID playerUUID = player.getUniqueId();
         playerSelectedStructures.put(playerUUID, structureType);
-        player.sendMessage("§aSelected structure: §6" + structureType.getDisplayName());
+        player.sendMessage("\u00a7aSelected structure: \u00a76" + structureType.getDisplayName());
+    }
+
+    public void deselectStructure(UUID playerUUID) {
+        playerSelectedStructures.remove(playerUUID);
     }
 
     public void placeStructure(Player player, Structure structure, float yaw) {
         // Validate placement
         if (!blockValidator.canPlaceStructure(structure)) {
-            player.sendMessage("§cCannot place structure here!");
+            player.sendMessage("\u00a7cCannot place structure here!");
             return;
         }
 
@@ -53,7 +57,7 @@ public class BuilderManager {
 
         // Save to database
         structureManager.saveStructure(structure);
-        player.sendMessage("§aStructure placed successfully!");
+        player.sendMessage("\u00a7aStructure placed successfully!");
     }
 
     public StructureType getSelectedStructure(UUID playerUUID) {
