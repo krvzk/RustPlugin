@@ -4,6 +4,7 @@ import com.krvzk.rustplugin.RustPlugin;
 import com.krvzk.rustplugin.builders.BuilderManager;
 import com.krvzk.rustplugin.structures.Structure;
 import com.krvzk.rustplugin.structures.StructureType;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,14 +25,21 @@ public class PlayerInteractListener implements Listener {
         this.builderManager = builderManager;
     }
 
+    private boolean isBlueprintItem(Player player) {
+        if (player.getInventory().getItemInMainHand().getItemMeta() == null) {
+            return false;
+        }
+        String displayName = player.getInventory().getItemInMainHand().getItemMeta().getDisplayName();
+        return displayName.equals("§6Plan Budowy");
+    }
+
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
 
         // Check if player is holding the blueprint
-        if (player.getInventory().getItemInMainHand().getItemMeta() == null ||
-                !player.getInventory().getItemInMainHand().getItemMeta().getDisplayName().equals("\u00a76Plan Budowy")) {
+        if (!isBlueprintItem(player)) {
             return;
         }
 
@@ -47,7 +55,7 @@ public class PlayerInteractListener implements Listener {
             event.setCancelled(true);
 
             if (!builderManager.hasStructureSelected(playerUUID)) {
-                player.sendMessage("\u00a7cSelect a structure first!");
+                player.sendMessage("§cSelect a structure first!");
                 return;
             }
 
@@ -67,7 +75,7 @@ public class PlayerInteractListener implements Listener {
                     playerUUID,
                     selectedStructure,
                     placeLocation,
-                    null  // We'll handle rotation via yaw
+                    null
             );
 
             // Store yaw for rotation handling
@@ -83,7 +91,7 @@ public class PlayerInteractListener implements Listener {
         // Check if player is no longer holding the blueprint
         if (player.getInventory().getItem(event.getNewSlot()) == null ||
                 player.getInventory().getItem(event.getNewSlot()).getItemMeta() == null ||
-                !player.getInventory().getItem(event.getNewSlot()).getItemMeta().getDisplayName().equals("\u00a76Plan Budowy")) {
+                !player.getInventory().getItem(event.getNewSlot()).getItemMeta().getDisplayName().equals("§6Plan Budowy")) {
             
             // Clear preview and reset structure selection
             plugin.getPreviewRenderer().clearAllPreviews(player);
