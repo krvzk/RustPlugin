@@ -55,9 +55,13 @@ public class BlockValidator {
         return true;
     }
 
-    public void placeStructureBlocks(Structure structure) {
+    public void placeStructureBlocks(Structure structure, float yaw) {
         StructureType type = structure.getType();
         Location baseLocation = structure.getLocation();
+
+        // Normalize yaw to 0-360
+        float normalizedYaw = ((yaw + 180) % 360);
+        if (normalizedYaw < 0) normalizedYaw += 360;
 
         if (type == StructureType.FUNDAMENT) {
             // 5x5 fundament with 3x3 planks in center and wood around edges
@@ -76,10 +80,26 @@ public class BlockValidator {
                 }
             }
         } else if (type == StructureType.SCIANA) {
-            // 5x5x1 wall (5 wide, 5 tall, 1 deep)
+            // 5x5x1 wall with rotation based on yaw
             for (int x = 0; x < 5; x++) {
                 for (int y = 0; y < 5; y++) {
-                    Location blockLocation = baseLocation.clone().add(x, y, 0);
+                    Location blockLocation = baseLocation.clone();
+
+                    // Determine direction and rotate accordingly
+                    if (normalizedYaw >= 315 || normalizedYaw < 45) {
+                        // Facing South (positive Z)
+                        blockLocation.add(x, y, 0);
+                    } else if (normalizedYaw >= 45 && normalizedYaw < 135) {
+                        // Facing West (negative X)
+                        blockLocation.add(0, y, x);
+                    } else if (normalizedYaw >= 135 && normalizedYaw < 225) {
+                        // Facing North (negative Z)
+                        blockLocation.add(4 - x, y, 4);
+                    } else {
+                        // Facing East (positive X)
+                        blockLocation.add(4, y, 4 - x);
+                    }
+
                     blockLocation.getBlock().setType(Material.OAK_LOG);
                 }
             }

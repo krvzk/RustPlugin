@@ -41,15 +41,15 @@ public class BuilderManager {
         player.sendMessage("§aSelected structure: §6" + structureType.getDisplayName());
     }
 
-    public void placeStructure(Player player, Structure structure) {
+    public void placeStructure(Player player, Structure structure, float yaw) {
         // Validate placement
         if (!blockValidator.canPlaceStructure(structure)) {
             player.sendMessage("§cCannot place structure here!");
             return;
         }
 
-        // Place blocks in the world
-        blockValidator.placeStructureBlocks(structure);
+        // Place blocks in the world with rotation
+        blockValidator.placeStructureBlocks(structure, yaw);
 
         // Save to database
         structureManager.saveStructure(structure);

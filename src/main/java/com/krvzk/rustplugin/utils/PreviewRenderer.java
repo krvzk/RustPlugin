@@ -12,7 +12,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
@@ -40,28 +39,17 @@ public class PreviewRenderer {
     public void updatePreview(Player player, StructureType structureType) {
         UUID playerUUID = player.getUniqueId();
 
-        // Ray trace to find where player is looking
-        RayTraceResult rayTrace = player.rayTraceBlocks(MAX_DISTANCE);
+        // Get direction player is looking
+        Vector direction = player.getLocation().getDirection().normalize();
+        Location previewLocation = player.getLocation().add(direction.multiply(7));
+        previewLocation.setY(previewLocation.getBlockY());
 
-        if (rayTrace == null || rayTrace.getHitBlock() == null) {
-            clearPreview(player);
-            return;
-        }
-
-        Block targetBlock = rayTrace.getHitBlock();
-        double distance = player.getLocation().distance(targetBlock.getLocation());
-
-        // Check if target is within range
-        if (distance < MIN_DISTANCE || distance > MAX_DISTANCE) {
-            clearPreview(player);
-            return;
-        }
-
-        Location previewLocation = targetBlock.getLocation().add(0, 1, 0);
         Location lastLocation = playerLastPreviewLocation.get(playerUUID);
 
         // Only update if location changed
-        if (lastLocation != null && lastLocation.equals(previewLocation)) {
+        if (lastLocation != null && lastLocation.getBlockX() == previewLocation.getBlockX() &&
+                lastLocation.getBlockY() == previewLocation.getBlockY() &&
+                lastLocation.getBlockZ() == previewLocation.getBlockZ()) {
             return;
         }
 
@@ -69,25 +57,40 @@ public class PreviewRenderer {
         clearPreview(player);
 
         // Send block change packets for preview
-        sendBlockPreview(player, previewLocation, structureType, rayTrace.getHitBlockFace());
+        sendBlockPreview(player, previewLocation, structureType, player.getLocation().getYaw());
         playerLastPreviewLocation.put(playerUUID, previewLocation);
     }
 
-    private void sendBlockPreview(Player player, Location baseLocation, StructureType type, org.bukkit.block.BlockFace face) {
+    private void sendBlockPreview(Player player, Location baseLocation, StructureType type, float yaw) {
         UUID playerUUID = player.getUniqueId();
         Set<Location> previewLocations = new HashSet<>();
-        BlockValidator validator = new BlockValidator(
-                plugin.getStructureManager(),
-                plugin.getDatabaseManager()
-        );
+
+        // Normalize yaw to 0-360
+        float normalizedYaw = ((yaw + 180) % 360);
+        if (normalizedYaw < 0) normalizedYaw += 360;
 
         if (type == StructureType.SCIANA) {
-            // Draw wall in the direction player is looking
-            for (int x = 0; x < type.getWidth(); x++) {
-                for (int y = 0; y < type.getHeight(); y++) {
-                    Location blockLocation = baseLocation.clone().add(x, y, 0);
-                    Block block = blockLocation.getBlock();
+            // Draw wall based on player direction
+            for (int x = 0; x < 5; x++) {
+                for (int y = 0; y < 5; y++) {
+                    Location blockLocation = baseLocation.clone();
 
+                    // Determine direction and rotate accordingly
+                    if (normalizedYaw >= 315 || normalizedYaw < 45) {
+                        // Facing South (positive Z)
+                        blockLocation.add(x, y, 0);
+                    } else if (normalizedYaw >= 45 && normalizedYaw < 135) {
+                        // Facing West (negative X)
+                        blockLocation.add(0, y, x);
+                    } else if (normalizedYaw >= 135 && normalizedYaw < 225) {
+                        // Facing North (negative Z)
+                        blockLocation.add(4 - x, y, 4);
+                    } else {
+                        // Facing East (positive X)
+                        blockLocation.add(4, y, 4 - x);
+                    }
+
+                    Block block = blockLocation.getBlock();
                     boolean canPlace = block.getType() == Material.AIR;
                     Material previewMaterial = canPlace ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS;
                     sendBlockChangePacket(player, blockLocation, previewMaterial);
@@ -96,9 +99,9 @@ public class PreviewRenderer {
             }
         } else {
             // For fundament and sufit (horizontal structures)
-            for (int x = 0; x < type.getWidth(); x++) {
+            for (int x = 0; x < 5; x++) {
                 for (int y = 0; y < type.getHeight(); y++) {
-                    for (int z = 0; z < type.getDepth(); z++) {
+                    for (int z = 0; z < 5; z++) {
                         Location blockLocation = baseLocation.clone().add(x, y, z);
                         Block block = blockLocation.getBlock();
 
