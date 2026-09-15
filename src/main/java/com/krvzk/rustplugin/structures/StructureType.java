@@ -1,9 +1,9 @@
 package com.krvzk.rustplugin.structures;
 
 public enum StructureType {
-    FUNDAMENT("Fundament", 4, 1, 4),      // 4x1x4
-    SCIANA("Ściana", 4, 4, 1),             // 4x4x1 (depth)
-    SUFIT("Sufit", 4, 1, 4);               // 4x1x4
+    FUNDAMENT("Fundament", 5, 1, 5),      // 5x1x5
+    SCIANA("Ściana", 5, 5, 1),             // 5x5x1 (depth)
+    SUFIT("Sufit", 5, 1, 5);               // 5x1x5
 
     private final String displayName;
     private final int width;  // X axis

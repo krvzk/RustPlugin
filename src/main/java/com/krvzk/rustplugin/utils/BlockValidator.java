@@ -60,39 +60,41 @@ public class BlockValidator {
         Location baseLocation = structure.getLocation();
 
         if (type == StructureType.FUNDAMENT) {
-            // 4x4 fundament with 3x3 planks in center and wood around
-            for (int x = 0; x < 4; x++) {
-                for (int z = 0; z < 4; z++) {
+            // 5x5 fundament with 3x3 planks in center and wood around edges
+            for (int x = 0; x < 5; x++) {
+                for (int z = 0; z < 5; z++) {
                     Location blockLocation = baseLocation.clone().add(x, 0, z);
                     Block block = blockLocation.getBlock();
 
-                    // 3x3 planks in center (positions 0-2 in both axes)
-                    if (x >= 0 && x <= 2 && z >= 0 && z <= 2) {
+                    // 3x3 planks in center (positions 1-3 in both axes)
+                    if (x >= 1 && x <= 3 && z >= 1 && z <= 3) {
                         block.setType(Material.OAK_PLANKS);
                     } else {
+                        // Wood on edges
                         block.setType(Material.OAK_LOG);
                     }
                 }
             }
         } else if (type == StructureType.SCIANA) {
-            // 4x4x1 wall (4 wide, 4 tall, 1 deep)
-            for (int x = 0; x < 4; x++) {
-                for (int y = 0; y < 4; y++) {
+            // 5x5x1 wall (5 wide, 5 tall, 1 deep)
+            for (int x = 0; x < 5; x++) {
+                for (int y = 0; y < 5; y++) {
                     Location blockLocation = baseLocation.clone().add(x, y, 0);
                     blockLocation.getBlock().setType(Material.OAK_LOG);
                 }
             }
         } else if (type == StructureType.SUFIT) {
-            // 4x4 ceiling with 3x3 planks in center and wood around
-            for (int x = 0; x < 4; x++) {
-                for (int z = 0; z < 4; z++) {
+            // 5x5 ceiling with 3x3 planks in center and wood around edges
+            for (int x = 0; x < 5; x++) {
+                for (int z = 0; z < 5; z++) {
                     Location blockLocation = baseLocation.clone().add(x, 0, z);
                     Block block = blockLocation.getBlock();
 
-                    // 3x3 planks in center
-                    if (x >= 0 && x <= 2 && z >= 0 && z <= 2) {
+                    // 3x3 planks in center (positions 1-3 in both axes)
+                    if (x >= 1 && x <= 3 && z >= 1 && z <= 3) {
                         block.setType(Material.OAK_PLANKS);
                     } else {
+                        // Wood on edges
                         block.setType(Material.OAK_LOG);
                     }
                 }

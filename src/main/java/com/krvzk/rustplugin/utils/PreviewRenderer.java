@@ -27,6 +27,7 @@ public class PreviewRenderer {
     private final BuilderManager builderManager;
     private final ProtocolManager protocolManager;
     private final Map<UUID, Set<Location>> playerPreviewBlocks = new HashMap<>();
+    private final Map<UUID, Location> playerLastPreviewLocation = new HashMap<>();
     private final int MIN_DISTANCE = 5;
     private final int MAX_DISTANCE = 10;
 
@@ -39,13 +40,11 @@ public class PreviewRenderer {
     public void updatePreview(Player player, StructureType structureType) {
         UUID playerUUID = player.getUniqueId();
 
-        // Clear previous preview
-        clearPreview(player);
-
         // Ray trace to find where player is looking
         RayTraceResult rayTrace = player.rayTraceBlocks(MAX_DISTANCE);
 
         if (rayTrace == null || rayTrace.getHitBlock() == null) {
+            clearPreview(player);
             return;
         }
 
@@ -54,16 +53,27 @@ public class PreviewRenderer {
 
         // Check if target is within range
         if (distance < MIN_DISTANCE || distance > MAX_DISTANCE) {
+            clearPreview(player);
             return;
         }
 
         Location previewLocation = targetBlock.getLocation().add(0, 1, 0);
+        Location lastLocation = playerLastPreviewLocation.get(playerUUID);
+
+        // Only update if location changed
+        if (lastLocation != null && lastLocation.equals(previewLocation)) {
+            return;
+        }
+
+        // Clear previous preview
+        clearPreview(player);
 
         // Send block change packets for preview
-        sendBlockPreview(player, previewLocation, structureType);
+        sendBlockPreview(player, previewLocation, structureType, rayTrace.getHitBlockFace());
+        playerLastPreviewLocation.put(playerUUID, previewLocation);
     }
 
-    private void sendBlockPreview(Player player, Location baseLocation, StructureType type) {
+    private void sendBlockPreview(Player player, Location baseLocation, StructureType type, org.bukkit.block.BlockFace face) {
         UUID playerUUID = player.getUniqueId();
         Set<Location> previewLocations = new HashSet<>();
         BlockValidator validator = new BlockValidator(
@@ -71,19 +81,32 @@ public class PreviewRenderer {
                 plugin.getDatabaseManager()
         );
 
-        for (int x = 0; x < type.getWidth(); x++) {
-            for (int y = 0; y < type.getHeight(); y++) {
-                for (int z = 0; z < type.getDepth(); z++) {
-                    Location blockLocation = baseLocation.clone().add(x, y, z);
+        if (type == StructureType.SCIANA) {
+            // Draw wall in the direction player is looking
+            for (int x = 0; x < type.getWidth(); x++) {
+                for (int y = 0; y < type.getHeight(); y++) {
+                    Location blockLocation = baseLocation.clone().add(x, y, 0);
                     Block block = blockLocation.getBlock();
 
-                    // Determine if this block can be placed
                     boolean canPlace = block.getType() == Material.AIR;
-
-                    // Send preview block
                     Material previewMaterial = canPlace ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS;
                     sendBlockChangePacket(player, blockLocation, previewMaterial);
                     previewLocations.add(blockLocation);
+                }
+            }
+        } else {
+            // For fundament and sufit (horizontal structures)
+            for (int x = 0; x < type.getWidth(); x++) {
+                for (int y = 0; y < type.getHeight(); y++) {
+                    for (int z = 0; z < type.getDepth(); z++) {
+                        Location blockLocation = baseLocation.clone().add(x, y, z);
+                        Block block = blockLocation.getBlock();
+
+                        boolean canPlace = block.getType() == Material.AIR;
+                        Material previewMaterial = canPlace ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS;
+                        sendBlockChangePacket(player, blockLocation, previewMaterial);
+                        previewLocations.add(blockLocation);
+                    }
                 }
             }
         }
