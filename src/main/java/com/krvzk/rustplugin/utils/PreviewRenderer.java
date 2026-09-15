@@ -16,7 +16,9 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class PreviewRenderer {
@@ -24,7 +26,9 @@ public class PreviewRenderer {
     private final RustPlugin plugin;
     private final BuilderManager builderManager;
     private final ProtocolManager protocolManager;
-    private final Map<UUID, Integer> lastPreviewTaskId = new HashMap<>();
+    private final Map<UUID, Set<Location>> playerPreviewBlocks = new HashMap<>();
+    private final int MIN_DISTANCE = 5;
+    private final int MAX_DISTANCE = 10;
 
     public PreviewRenderer(RustPlugin plugin, BuilderManager builderManager) {
         this.plugin = plugin;
@@ -33,15 +37,26 @@ public class PreviewRenderer {
     }
 
     public void updatePreview(Player player, StructureType structureType) {
+        UUID playerUUID = player.getUniqueId();
+
+        // Clear previous preview
+        clearPreview(player);
+
         // Ray trace to find where player is looking
-        RayTraceResult rayTrace = player.rayTraceBlocks(5);
+        RayTraceResult rayTrace = player.rayTraceBlocks(MAX_DISTANCE);
 
         if (rayTrace == null || rayTrace.getHitBlock() == null) {
-            clearPreview(player);
             return;
         }
 
         Block targetBlock = rayTrace.getHitBlock();
+        double distance = player.getLocation().distance(targetBlock.getLocation());
+
+        // Check if target is within range
+        if (distance < MIN_DISTANCE || distance > MAX_DISTANCE) {
+            return;
+        }
+
         Location previewLocation = targetBlock.getLocation().add(0, 1, 0);
 
         // Send block change packets for preview
@@ -49,6 +64,8 @@ public class PreviewRenderer {
     }
 
     private void sendBlockPreview(Player player, Location baseLocation, StructureType type) {
+        UUID playerUUID = player.getUniqueId();
+        Set<Location> previewLocations = new HashSet<>();
         BlockValidator validator = new BlockValidator(
                 plugin.getStructureManager(),
                 plugin.getDatabaseManager()
@@ -66,26 +83,43 @@ public class PreviewRenderer {
                     // Send preview block
                     Material previewMaterial = canPlace ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS;
                     sendBlockChangePacket(player, blockLocation, previewMaterial);
+                    previewLocations.add(blockLocation);
                 }
             }
         }
+
+        playerPreviewBlocks.put(playerUUID, previewLocations);
+    }
+
+    private void clearPreview(Player player) {
+        UUID playerUUID = player.getUniqueId();
+        Set<Location> previewLocations = playerPreviewBlocks.get(playerUUID);
+
+        if (previewLocations == null) {
+            return;
+        }
+
+        // Restore original block data for all preview blocks
+        for (Location location : previewLocations) {
+            Block block = location.getBlock();
+            sendBlockChangePacket(player, location, block.getType());
+        }
+
+        playerPreviewBlocks.remove(playerUUID);
     }
 
     private void sendBlockChangePacket(Player player, Location location, Material material) {
         try {
-            var packet = protocolManager.createPacketConstructor(PacketType.Play.Server.BLOCK_CHANGE)
-                    .createPacket(
-                            new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()),
-                            WrappedBlockData.createData(material)
-                    );
+            PacketContainer packet = new PacketContainer(PacketType.Play.Server.BLOCK_CHANGE);
+            packet.getBlockPositionModifier().write(0, new BlockPosition(location.getBlockX(), location.getBlockY(), location.getBlockZ()));
+            packet.getBlockData().write(0, WrappedBlockData.createData(material));
             protocolManager.sendServerPacket(player, packet);
         } catch (Exception e) {
             plugin.getLogger().severe("Failed to send block preview packet: " + e.getMessage());
         }
     }
 
-    public void clearPreview(Player player) {
-        // Clear previews by sending actual block data
-        // This would require storing what blocks were previously shown
+    public void clearAllPreviews(Player player) {
+        clearPreview(player);
     }
 }

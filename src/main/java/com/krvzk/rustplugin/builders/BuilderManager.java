@@ -21,7 +21,7 @@ public class BuilderManager {
     private final RustPlugin plugin;
     private final StructureManager structureManager;
     private final DatabaseManager databaseManager;
-    private final Map<UUID, BuilderSession> activeSessions = new HashMap<>();
+    private final Map<UUID, StructureType> playerSelectedStructures = new HashMap<>();
     private final BlockValidator blockValidator;
 
     public BuilderManager(RustPlugin plugin, StructureManager structureManager, DatabaseManager databaseManager) {
@@ -31,76 +31,36 @@ public class BuilderManager {
         this.blockValidator = new BlockValidator(structureManager, databaseManager);
     }
 
-    public void startBuilding(Player player) {
-        UUID playerUUID = player.getUniqueId();
-
-        if (activeSessions.containsKey(playerUUID)) {
-            player.sendMessage("§cYou are already in building mode!");
-            return;
-        }
-
-        // Create blueprint item
-        ItemStack blueprint = new ItemStack(Material.PAPER);
-        ItemMeta meta = blueprint.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName("§6Plan Budowy");
-            blueprint.setItemMeta(meta);
-        }
-
-        // Add to player inventory
-        player.getInventory().addItem(blueprint);
-
-        // Create session
-        BuilderSession session = new BuilderSession(player, blueprint);
-        activeSessions.put(playerUUID, session);
-
-        player.sendMessage("§aBuilding mode enabled! Right-click the Blueprint to select a structure.");
-    }
-
     public void openBuildMenu(Player player) {
         BuildMenuGUI.openMenu(player, this);
     }
 
     public void selectStructure(Player player, StructureType structureType) {
         UUID playerUUID = player.getUniqueId();
-        BuilderSession session = activeSessions.get(playerUUID);
-
-        if (session != null) {
-            session.setSelectedStructure(structureType);
-            player.sendMessage("§aSelected structure: §6" + structureType.getDisplayName());
-        }
+        playerSelectedStructures.put(playerUUID, structureType);
+        player.sendMessage("§aSelected structure: §6" + structureType.getDisplayName());
     }
 
     public void placeStructure(Player player, Structure structure) {
-        UUID playerUUID = player.getUniqueId();
-        BuilderSession session = activeSessions.get(playerUUID);
-
-        if (session == null) {
-            return;
-        }
-
         // Validate placement
         if (!blockValidator.canPlaceStructure(structure)) {
             player.sendMessage("§cCannot place structure here!");
             return;
         }
 
+        // Place blocks in the world
+        blockValidator.placeStructureBlocks(structure);
+
         // Save to database
         structureManager.saveStructure(structure);
         player.sendMessage("§aStructure placed successfully!");
     }
 
-    public BuilderSession getSession(UUID playerUUID) {
-        return activeSessions.get(playerUUID);
+    public StructureType getSelectedStructure(UUID playerUUID) {
+        return playerSelectedStructures.get(playerUUID);
     }
 
-    public void endSession(Player player) {
-        UUID playerUUID = player.getUniqueId();
-        activeSessions.remove(playerUUID);
-        player.sendMessage("§cBuilding mode disabled.");
-    }
-
-    public boolean isInBuildingMode(UUID playerUUID) {
-        return activeSessions.containsKey(playerUUID);
+    public boolean hasStructureSelected(UUID playerUUID) {
+        return playerSelectedStructures.containsKey(playerUUID);
     }
 }

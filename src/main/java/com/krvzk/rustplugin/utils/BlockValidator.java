@@ -55,6 +55,51 @@ public class BlockValidator {
         return true;
     }
 
+    public void placeStructureBlocks(Structure structure) {
+        StructureType type = structure.getType();
+        Location baseLocation = structure.getLocation();
+
+        if (type == StructureType.FUNDAMENT) {
+            // 4x4 fundament with 3x3 planks in center and wood around
+            for (int x = 0; x < 4; x++) {
+                for (int z = 0; z < 4; z++) {
+                    Location blockLocation = baseLocation.clone().add(x, 0, z);
+                    Block block = blockLocation.getBlock();
+
+                    // 3x3 planks in center (positions 0-2 in both axes)
+                    if (x >= 0 && x <= 2 && z >= 0 && z <= 2) {
+                        block.setType(Material.OAK_PLANKS);
+                    } else {
+                        block.setType(Material.OAK_LOG);
+                    }
+                }
+            }
+        } else if (type == StructureType.SCIANA) {
+            // 4x4x1 wall (4 wide, 4 tall, 1 deep)
+            for (int x = 0; x < 4; x++) {
+                for (int y = 0; y < 4; y++) {
+                    Location blockLocation = baseLocation.clone().add(x, y, 0);
+                    blockLocation.getBlock().setType(Material.OAK_LOG);
+                }
+            }
+        } else if (type == StructureType.SUFIT) {
+            // 4x4 ceiling with 3x3 planks in center and wood around
+            for (int x = 0; x < 4; x++) {
+                for (int z = 0; z < 4; z++) {
+                    Location blockLocation = baseLocation.clone().add(x, 0, z);
+                    Block block = blockLocation.getBlock();
+
+                    // 3x3 planks in center
+                    if (x >= 0 && x <= 2 && z >= 0 && z <= 2) {
+                        block.setType(Material.OAK_PLANKS);
+                    } else {
+                        block.setType(Material.OAK_LOG);
+                    }
+                }
+            }
+        }
+    }
+
     private boolean structuresOverlap(Structure s1, Structure s2) {
         Location loc1 = s1.getLocation();
         Location loc2 = s2.getLocation();
