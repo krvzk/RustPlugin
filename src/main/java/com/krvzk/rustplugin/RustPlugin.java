@@ -5,6 +5,7 @@ import com.krvzk.rustplugin.builders.BuilderManager;
 import com.krvzk.rustplugin.structures.StructureManager;
 import com.krvzk.rustplugin.listeners.PlayerInteractListener;
 import com.krvzk.rustplugin.listeners.PreviewListener;
+import com.krvzk.rustplugin.utils.PreviewRenderer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class RustPlugin extends JavaPlugin {
@@ -12,6 +13,7 @@ public class RustPlugin extends JavaPlugin {
     private DatabaseManager databaseManager;
     private StructureManager structureManager;
     private BuilderManager builderManager;
+    private PreviewRenderer previewRenderer;
 
     @Override
     public void onEnable() {
@@ -24,6 +26,7 @@ public class RustPlugin extends JavaPlugin {
         // Initialize managers
         structureManager = new StructureManager(databaseManager);
         builderManager = new BuilderManager(this, structureManager, databaseManager);
+        previewRenderer = new PreviewRenderer(this, builderManager);
 
         // Register listeners
         getServer().getPluginManager().registerEvents(new PlayerInteractListener(this, builderManager), this);
@@ -37,7 +40,7 @@ public class RustPlugin extends JavaPlugin {
             }
 
             org.bukkit.entity.Player player = (org.bukkit.entity.Player) sender;
-            builderManager.startBuilding(player);
+            builderManager.openBuildMenu(player);
             return true;
         });
     }
@@ -60,5 +63,9 @@ public class RustPlugin extends JavaPlugin {
 
     public BuilderManager getBuilderManager() {
         return builderManager;
+    }
+
+    public PreviewRenderer getPreviewRenderer() {
+        return previewRenderer;
     }
 }
