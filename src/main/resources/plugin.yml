@@ -1,0 +1,11 @@
+name: RustPlugin
+version: 1.0.0
+main: com.krvzk.rustplugin.RustPlugin
+description: Minecraft Building System Plugin
+api-version: '1.21'
+commands:
+  buduj:
+    description: Start building mode
+    usage: /buduj
+depend:
+  - ProtocolLib
