@@ -31,8 +31,9 @@ public class BlockValidator {
                     Location checkLocation = baseLocation.clone().add(x, y, z);
                     Block block = checkLocation.getBlock();
 
-                    // Check if block is air
-                    if (block.getType() != Material.AIR) {
+                    // Allow placement on grass/dirt/stone (ground), but not on other structures
+                    if (block.getType() != Material.AIR && 
+                        !isGroundBlock(block.getType())) {
                         return false;
                     }
                 }
@@ -47,7 +48,7 @@ public class BlockValidator {
         );
 
         for (Structure existing : nearbyStructures) {
-            // Don't allow fundament on fundament
+            // Don't allow fundament directly above or below another fundament
             if (type == StructureType.FUNDAMENT && existing.getType() == StructureType.FUNDAMENT) {
                 if (isDirectlyAboveOrBelow(structure, existing)) {
                     return false;
@@ -61,6 +62,18 @@ public class BlockValidator {
         }
 
         return true;
+    }
+
+    private boolean isGroundBlock(Material material) {
+        return material == Material.GRASS_BLOCK || 
+               material == Material.DIRT || 
+               material == Material.COARSE_DIRT ||
+               material == Material.STONE ||
+               material == Material.ANDESITE ||
+               material == Material.GRANITE ||
+               material == Material.DIORITE ||
+               material == Material.GRASS ||
+               material == Material.TALL_GRASS;
     }
 
     private boolean isDirectlyAboveOrBelow(Structure s1, Structure s2) {
@@ -78,8 +91,12 @@ public class BlockValidator {
         int z2_min = loc2.getBlockZ();
         int z2_max = z2_min + s2.getType().getDepth();
 
-        // Check if X and Z ranges overlap or are adjacent
-        return !(x1_max < x2_min || x1_min > x2_max || z1_max < z2_min || z1_min > z2_max);
+        // Check if X and Z ranges overlap exactly (not just adjacent)
+        boolean xOverlap = x1_min < x2_max && x1_max > x2_min;
+        boolean zOverlap = z1_min < z2_max && z1_max > z2_min;
+        boolean yDifferent = loc1.getBlockY() != loc2.getBlockY();
+
+        return xOverlap && zOverlap && yDifferent;
     }
 
     private boolean structuresInteriorOverlap(Structure s1, Structure s2) {

@@ -16,7 +16,7 @@ public class Structure {
         this.playerUUID = playerUUID;
         this.type = type;
         this.location = location;
-        this.facing = facing;
+        this.facing = facing != null ? facing : BlockFace.NORTH; // Default to NORTH if null
     }
 
     public Structure(long id, UUID playerUUID, StructureType type, Location location, BlockFace facing) {
@@ -24,7 +24,7 @@ public class Structure {
         this.playerUUID = playerUUID;
         this.type = type;
         this.location = location;
-        this.facing = facing;
+        this.facing = facing != null ? facing : BlockFace.NORTH; // Default to NORTH if null
     }
 
     public UUID getPlayerUUID() {
